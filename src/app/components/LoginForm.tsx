@@ -22,9 +22,11 @@ export default function LoginForm({
     });
 
     if (error) {
-      setErrorMessage(error.message);
-      return;
-    }
+  setErrorMessage(
+    "No account found with these details. Please check your credentials or sign up first."
+  );
+  return;
+}
 
     const user = data.user;
 
