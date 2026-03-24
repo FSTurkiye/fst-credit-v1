@@ -24,7 +24,7 @@ export default function LandingHero() {
       <section className="flex items-start justify-between gap-8">
         <div>
           <p className="text-sm font-medium uppercase tracking-wide text-gray-500">
-            FST Credit
+            FST Credits
           </p>
 
           <h1 className="mt-2 max-w-3xl text-5xl font-bold tracking-tight text-gray-900">

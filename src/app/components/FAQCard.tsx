@@ -12,10 +12,10 @@ export default function FAQCard() {
       <div className="mt-6 space-y-5">
         <div>
           <p className="text-sm font-semibold text-gray-900">
-            What is FST Credit?
+            What is FST Credits?
           </p>
           <p className="mt-1 text-sm text-gray-600">
-            FST Credit is a credit-based collaboration system for engineering
+            FST Credits is a credit-based collaboration system for engineering
             teams, communities, and contributors.
           </p>
         </div>
@@ -54,7 +54,7 @@ export default function FAQCard() {
             Is this a payment platform?
           </p>
           <p className="mt-1 text-sm text-gray-600">
-            No. At this stage, FST Credit is a closed ecosystem for coordinated
+            No. At this stage, FST Credits is a closed ecosystem for coordinated
             service exchange and credit-based collaboration.
           </p>
         </div>

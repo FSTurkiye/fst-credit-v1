@@ -53,7 +53,7 @@ if (user && wallet && !wallet.display_name) {
       <div className="w-1/2 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
         <p className="text-sm text-gray-500">Your Balance</p>
         <WalletBalance />
-        <p className="mt-1 text-sm text-gray-500">FST Credit</p>
+        <p className="mt-1 text-sm text-gray-500">FST Credits</p>
       </div>
 
       <div className="w-1/2 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">

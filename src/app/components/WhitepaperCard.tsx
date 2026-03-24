@@ -6,11 +6,11 @@ export default function WhitepaperCard() {
       <p className="text-sm text-gray-500">Whitepaper</p>
 
       <h3 className="mt-2 text-xl font-semibold text-gray-900">
-        The Idea Behind FST Credit
+        The Idea Behind FST Credits
       </h3>
 
       <p className="mt-3 text-sm text-gray-600">
-        FST Credit is a collaboration-based credit network designed for
+        FST Credits is a collaboration-based credit network designed for
         student engineering teams. Instead of relying solely on traditional
         money transfers, teams can exchange knowledge, services, and technical
         contributions using a shared digital credit.

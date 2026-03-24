@@ -34,7 +34,7 @@ const INITIAL_REFERENCE_VALUE = 0.01;
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
         <p className="text-sm text-gray-500">Total Supply</p>
         <h2 className="mt-3 text-3xl font-semibold">{TOTAL_SUPPLY}</h2>
-        <p className="mt-1 text-sm text-gray-500">FST Credit</p>
+        <p className="mt-1 text-sm text-gray-500">FST Credits</p>
       </div>
 
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
@@ -42,7 +42,7 @@ const INITIAL_REFERENCE_VALUE = 0.01;
         <h2 className="mt-3 text-3xl font-semibold">
           {treasuryBalance ?? "..."}
         </h2>
-        <p className="mt-1 text-sm text-gray-500">FST Credit</p>
+        <p className="mt-1 text-sm text-gray-500">FST Credits</p>
       </div>
 
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
@@ -50,12 +50,12 @@ const INITIAL_REFERENCE_VALUE = 0.01;
         <h2 className="mt-3 text-3xl font-semibold">
           {circulatingSupply ?? "..."}
         </h2>
-        <p className="mt-1 text-sm text-gray-500">FST Credit</p>
+        <p className="mt-1 text-sm text-gray-500">FST Credits</p>
       </div>
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
   <p className="text-sm text-gray-500">Initial Reference Value</p>
   <h2 className="mt-3 text-3xl font-semibold">${INITIAL_REFERENCE_VALUE}</h2>
-  <p className="mt-1 text-sm text-gray-500">Per FST Credit</p>
+  <p className="mt-1 text-sm text-gray-500">Per FST Credits</p>
 </div>
 <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
   <p className="text-sm text-gray-500">Estimated Ecosystem Value</p>
