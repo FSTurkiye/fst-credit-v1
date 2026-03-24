@@ -23,7 +23,7 @@ export default function WhitepaperCard() {
       </p>
 
       <a
-        href="/FST_Credits_Whitepaper_Formatted.pdf"
+        href="/FST_Credits_Whitepaper.pdf"
         target="_blank"
         rel="noopener noreferrer"
         className="mt-6 inline-block rounded-xl bg-black px-5 py-3 text-sm font-medium text-white hover:bg-gray-800"
