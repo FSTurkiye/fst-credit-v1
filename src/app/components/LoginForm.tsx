@@ -90,7 +90,13 @@ export default function LoginForm({
     setErrorMessage("This email is already registered. Please log in.");
     return;
   }
-
+await fetch("/api/notify-signup", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ email }),
+});
   setSignupSuccess(true);
 };
   return (
