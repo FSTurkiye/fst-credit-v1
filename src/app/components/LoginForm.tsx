@@ -1,83 +1,132 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function LoginForm({
-  mode = "login",
-}: {
-  mode?: "login" | "signup";
-}) {
+type Wallet = {
+  id: string;
+  display_name: string | null;
+};
+
+export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [signupSuccess, setSignupSuccess] = useState(false);
+
+  const [walletName, setWalletName] = useState("");
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const [needsWalletSetup, setNeedsWalletSetup] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async () => {
-    setErrorMessage("");
+  useEffect(() => {
+    const checkSessionAndWallet = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-  setErrorMessage(
-    "No account found with these details. Please check your credentials or sign up first."
-  );
-  return;
-}
-
-    const user = data.user;
-
-    if (user) {
-      const { data: existingWallets, error: walletCheckError } = await supabase
-        .from("wallets")
-        .select("id")
-        .eq("owner_user_id", user.id)
-        .limit(1);
-
-      if (walletCheckError) {
-        setErrorMessage("Could not check wallet.");
+      if (!user) {
+        setUserId(null);
+        setWallet(null);
+        setNeedsWalletSetup(false);
         return;
       }
 
-      if (!existingWallets || existingWallets.length === 0) {
-        const { error: createWalletError } = await supabase.from("wallets").insert([
-          {
-            name: email,
-            type: "individual",
-            balance: 0,
-            owner_user_id: user.id,
-          },
-        ]);
+      setUserId(user.id);
 
-        if (createWalletError) {
-          setErrorMessage("Could not create wallet.");
-          return;
-        }
+      const { data: existingWallet } = await supabase
+        .from("wallets")
+        .select("id, display_name")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+
+      if (existingWallet) {
+        setWallet(existingWallet);
+        setNeedsWalletSetup(false);
+      } else {
+        setWallet(null);
+        setNeedsWalletSetup(true);
       }
+    };
+
+    checkSessionAndWallet();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async () => {
+      await checkSessionAndWallet();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = async () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+    setIsLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      setErrorMessage(
+        "No account found with these details. Please sign up first or check your email and password."
+      );
+      return;
     }
 
-    window.location.reload();
+    setSuccessMessage("Login successful.");
   };
 
   const handleSignup = async () => {
   setErrorMessage("");
+  setSuccessMessage("");
 
-  if (!email || !password) {
-    setErrorMessage("Email and password required");
+  const cleanEmail = email.trim().toLowerCase();
+
+  if (!cleanEmail || !password) {
+    setErrorMessage("Please enter your email and password.");
     return;
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
+  setIsLoading(true);
+
+  const { error } = await supabase.auth.signUp({
+    email: cleanEmail,
     password,
   });
 
+  setIsLoading(false);
+
   if (error) {
-    if (error.message.toLowerCase().includes("already registered")) {
-      setErrorMessage("This email is already registered. Please log in.");
+    const msg = error.message.toLowerCase();
+
+    if (
+      msg.includes("already registered") ||
+      msg.includes("already exists") ||
+      msg.includes("user already registered")
+    ) {
+      setErrorMessage(
+        "This email is already registered. Please log in instead."
+      );
+      return;
+    }
+
+    if (
+      msg.includes("security purposes") ||
+      msg.includes("after") ||
+      msg.includes("rate limit")
+    ) {
+      setSuccessMessage(
+        "We already sent you a confirmation email. Please check your inbox and confirm your email before logging in."
+      );
       return;
     }
 
@@ -85,62 +134,200 @@ export default function LoginForm({
     return;
   }
 
-  // Supabase bazen mevcut kullanıcı için gerçek hata yerine obfuscated/fake user dönebilir
-  const identities = data?.user?.identities ?? [];
-
-  if (identities.length === 0) {
-    setErrorMessage("This email is already registered. Please log in.");
-    return;
-  }
-await fetch("/api/notify-signup", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ email }),
-});
-  setSignupSuccess(true);
+  alert(
+  "We sent you a confirmation email. Please check your inbox, confirm your email, and then log in."
+);
 };
+
+  const handleCreateWallet = async () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (!userId) {
+      setErrorMessage("Please log in first.");
+      return;
+    }
+
+    const cleanWalletName = walletName.trim();
+
+    if (!cleanWalletName) {
+      setErrorMessage("Please enter a wallet name.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    const { error } = await supabase.from("wallets").insert({
+      owner_user_id: userId,
+      name: cleanWalletName,
+      display_name: cleanWalletName,
+      type: "individual",
+      balance: 0,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      if (error.message.toLowerCase().includes("duplicate")) {
+        setErrorMessage(
+          "This wallet name is already taken. Please choose another one."
+        );
+        return;
+      }
+
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setSuccessMessage("Your wallet has been created successfully.");
+
+    const { data: newWallet } = await supabase
+      .from("wallets")
+      .select("id, display_name")
+      .eq("owner_user_id", userId)
+      .maybeSingle();
+
+    if (newWallet) {
+      setWallet(newWallet);
+      setNeedsWalletSetup(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setWallet(null);
+    setNeedsWalletSetup(false);
+    setUserId(null);
+    setEmail("");
+    setPassword("");
+    setWalletName("");
+    setErrorMessage("");
+    setSuccessMessage("");
+  };
+
   return (
     <div className="space-y-4">
-      <input
-        type="email"
-        placeholder="Email"
-        className="w-full rounded-xl border border-gray-300 px-4 py-3"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+      {!userId ? (
+        <>
+          <div className="space-y-3">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
+            />
 
-      <input
-        type="password"
-        placeholder="Password"
-        className="w-full rounded-xl border border-gray-300 px-4 py-3"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
+            />
+          </div>
 
-      {mode === "login" && (
-        <button
-          type="button"
-          onClick={handleLogin}
-          className="w-full rounded-xl bg-black px-4 py-3 text-white"
-        >
-          Log In
-        </button>
-      )}
+          {errorMessage ? (
+            <p className="text-sm text-red-600">{errorMessage}</p>
+          ) : null}
 
-      {mode === "signup" && (
-        <button
-          type="button"
-          onClick={handleSignup}
-          className="w-full rounded-xl bg-black px-4 py-3 text-white"
-        >
-          Sign Up
-        </button>
-      )}
+          {successMessage ? (
+            <p className="text-sm text-green-600">{successMessage}</p>
+          ) : null}
 
-      {errorMessage && (
-        <p className="text-sm text-red-600">{errorMessage}</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={handleLogin}
+              disabled={isLoading}
+              className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+            >
+              {isLoading ? "Please wait..." : "Log In"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSignup}
+              disabled={isLoading}
+              className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black disabled:opacity-60"
+            >
+              {isLoading ? "Please wait..." : "Sign Up"}
+            </button>
+          </div>
+        </>
+      ) : needsWalletSetup ? (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Create Your Wallet
+            </h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Your account is ready. Please create your wallet to start using
+              FST Credits.
+            </p>
+          </div>
+
+          <input
+            type="text"
+            placeholder="Choose your wallet name"
+            value={walletName}
+            onChange={(e) => setWalletName(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
+          />
+
+          {errorMessage ? (
+            <p className="text-sm text-red-600">{errorMessage}</p>
+          ) : null}
+
+          {successMessage ? (
+            <p className="text-sm text-green-600">{successMessage}</p>
+          ) : null}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={handleCreateWallet}
+              disabled={isLoading}
+              className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+            >
+              {isLoading ? "Please wait..." : "Create Wallet"}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
+            >
+              Log Out
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Wallet Ready
+            </h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Your wallet is ready to use.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 p-4">
+            <p className="text-sm text-gray-500">Wallet Name</p>
+            <p className="mt-1 text-base font-semibold text-gray-900">
+              {wallet?.display_name}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
+          >
+            Log Out
+          </button>
+        </div>
       )}
     </div>
   );

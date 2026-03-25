@@ -10,10 +10,12 @@ import CreateListingForm from "./CreateListingForm";
 import MarketplaceListings from "./MarketplaceListings";
 import AdminTreasuryPanel from "./AdminTreasuryPanel";
 
-
 export default function MyWalletPanel() {
   const [user, setUser] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
+  const [walletName, setWalletName] = useState("");
+  const [walletError, setWalletError] = useState("");
+  const [walletLoading, setWalletLoading] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -29,7 +31,7 @@ export default function MyWalletPanel() {
         .from("wallets")
         .select("*")
         .eq("owner_user_id", user.id)
-        .single();
+        .maybeSingle();
 
       setWallet(wallet);
     };
@@ -37,11 +39,88 @@ export default function MyWalletPanel() {
     loadData();
   }, []);
 
-  if (!user || !wallet || !wallet.display_name) {
+  const handleCreateWallet = async () => {
+    if (!user) return;
+
+    const cleanName = walletName.trim();
+    if (!cleanName) {
+      setWalletError("Please enter a wallet name.");
+      return;
+    }
+
+    setWalletError("");
+    setWalletLoading(true);
+
+    const { error } = await supabase.from("wallets").upsert(
+      {
+        owner_user_id: user.id,
+        name: cleanName,
+        display_name: cleanName,
+        type: "individual",
+        balance: 0,
+      },
+      { onConflict: "owner_user_id" }
+    );
+
+    setWalletLoading(false);
+
+    if (error) {
+      setWalletError(error.message);
+      return;
+    }
+
+    const { data: newWallet } = await supabase
+      .from("wallets")
+      .select("*")
+      .eq("owner_user_id", user.id)
+      .maybeSingle();
+
+    setWallet(newWallet);
+  };
+
+  if (!user) {
     return null;
   }
 
-const isAdmin = wallet?.role === "admin";
+  if (!wallet || !wallet.display_name) {
+    return (
+      <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 space-y-4">
+        <div>
+          <p className="text-sm text-gray-500">Wallet Setup</p>
+          <h2 className="mt-2 text-2xl font-semibold text-gray-900">
+            Create Your Wallet
+          </h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Your account is ready. Please choose a wallet name to continue.
+          </p>
+        </div>
+
+        <input
+          type="text"
+          placeholder="Wallet name"
+          value={walletName}
+          onChange={(e) => setWalletName(e.target.value)}
+          className="w-full rounded-xl border border-gray-300 px-4 py-3"
+        />
+
+        {walletError ? (
+          <p className="text-sm text-red-600">{walletError}</p>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={handleCreateWallet}
+          disabled={walletLoading}
+          className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+        >
+          {walletLoading ? "Please wait..." : "Create Wallet"}
+        </button>
+      </section>
+    );
+  }
+
+  const isAdmin = wallet?.role === "admin";
+
   return (
     <section className="mt-8 space-y-8">
       <div>
@@ -67,7 +146,7 @@ const isAdmin = wallet?.role === "admin";
         </div>
 
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-          <h3 className="text-xl font-semibold">Send Credit</h3>
+          <h3 className="text-xl font-semibold">Send Credits</h3>
           <p className="mt-2 text-sm text-gray-600">
             Transfer credits to another wallet by using its wallet name.
           </p>
