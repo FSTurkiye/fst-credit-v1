@@ -1,18 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-
 import { supabase } from "@/lib/supabase";
 import AuthModal from "./AuthModal";
 
 type ModalMode = "login" | "signup" | null;
 
 export default function AuthGate() {
- 
-
-  const [loading, setLoading] = useState(true);
   const [sessionUserEmail, setSessionUserEmail] = useState<string | null>(null);
   const [openMode, setOpenMode] = useState<ModalMode>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadSession = async () => {
@@ -27,82 +24,38 @@ export default function AuthGate() {
     loadSession();
 
     const {
-  data: { subscription },
-} = 
-supabase.auth.onAuthStateChange((event, session) => {
-  // SADECE gerçek login olunca state güncelle
-  if (event === "SIGNED_IN") {
-    setSessionUserEmail(session?.user?.email ?? null);
-    setOpenMode(null);
-    window.location.reload();
-  }
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUserEmail(session?.user?.email ?? null);
+      setOpenMode(null);
+    });
 
-  // logout
-  if (event === "SIGNED_OUT") {
-    setSessionUserEmail(null);
-    setOpenMode(null);
-    window.location.reload();
-  }
-});
     return () => subscription.unsubscribe();
   }, []);
 
- const handleLogout = async () => {
-  await supabase.auth.signOut();
-  setSessionUserEmail(null);
-  setOpenMode(null);
-  window.location.reload();
-};
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSessionUserEmail(null);
+  };
 
-  if (loading) {
-    return null;
-  }
+  if (loading) return null;
 
   if (sessionUserEmail) {
     return (
-      <>
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-gray-500">
-            Logged in as
-          </p>
-          <p className="mt-2 break-all text-sm text-gray-900">
-            {sessionUserEmail}
-          </p>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="mt-4 w-full rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
-          >
-            Logout
-          </button>
-        </div>
-
-        {openMode && (
-          <AuthModal mode={openMode} onClose={() => setOpenMode(null)} />
-        )}
-      </>
+      <div className="rounded-2xl border p-4">
+        <p className="text-sm">{sessionUserEmail}</p>
+        <button onClick={handleLogout} className="mt-2 border px-3 py-1">
+          Logout
+        </button>
+      </div>
     );
   }
 
   return (
     <>
-      <div className="flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={() => setOpenMode("login")}
-          className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-900"
-        >
-          Log In
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setOpenMode("signup")}
-          className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white"
-        >
-          Sign Up
-        </button>
+      <div className="flex gap-2">
+        <button onClick={() => setOpenMode("login")}>Log In</button>
+        <button onClick={() => setOpenMode("signup")}>Sign Up</button>
       </div>
 
       {openMode && (
