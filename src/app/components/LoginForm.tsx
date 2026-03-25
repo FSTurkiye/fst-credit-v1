@@ -8,7 +8,7 @@ type Wallet = {
   display_name: string | null;
 };
 
-export default function LoginForm({ mode }: { mode?: "login" | "signup" }) {
+export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -134,7 +134,7 @@ export default function LoginForm({ mode }: { mode?: "login" | "signup" }) {
     return;
   }
 
-  alert(
+ setSuccessMessage(
   "We sent you a confirmation email. Please check your inbox, confirm your email, and then log in."
 );
 };
