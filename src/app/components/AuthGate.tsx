@@ -28,16 +28,22 @@ export default function AuthGate() {
 
     const {
   data: { subscription },
-} = supabase.auth.onAuthStateChange((_event, session) => {
-  setSessionUserEmail(session?.user?.email ?? null);
-
-  if (session?.user) {
+} = 
+supabase.auth.onAuthStateChange((event, session) => {
+  // SADECE gerçek login olunca state güncelle
+  if (event === "SIGNED_IN") {
+    setSessionUserEmail(session?.user?.email ?? null);
     setOpenMode(null);
+    window.location.reload();
   }
 
-  window.location.reload();
+  // logout
+  if (event === "SIGNED_OUT") {
+    setSessionUserEmail(null);
+    setOpenMode(null);
+    window.location.reload();
+  }
 });
-
     return () => subscription.unsubscribe();
   }, []);
 
