@@ -225,7 +225,7 @@ export default function LoginForm({ mode }: { mode: "login" | "signup" }) {
   };
 
   if (sessionUserId && needsWalletSetup) {
-    
+
     return (
       <div className="space-y-4">
         <div>
@@ -253,24 +253,25 @@ export default function LoginForm({ mode }: { mode: "login" | "signup" }) {
           <p className="text-sm text-green-600">{successMessage}</p>
         ) : null}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={handleCreateWallet}
-            disabled={isLoading}
-            className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {isLoading ? "Please wait..." : "Create Wallet"}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
-          >
-            Log Out
-          </button>
-        </div>
+        {mode === "login" ? (
+  <button
+    type="button"
+    onClick={handleLogin}
+    disabled={isLoading}
+    className="w-full rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+  >
+    {isLoading ? "Please wait..." : "Log In"}
+  </button>
+) : (
+  <button
+    type="button"
+    onClick={handleSignup}
+    disabled={isLoading}
+    className="w-full rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+  >
+    {isLoading ? "Please wait..." : "Sign Up"}
+  </button>
+)}
       </div>
     );
   }
