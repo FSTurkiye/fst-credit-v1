@@ -19,7 +19,6 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900">
-      <AutoCreateWallet />
       <div className="mx-auto max-w-5xl px-6 py-10">
         <LandingHero />
         <MyWalletPanel />
