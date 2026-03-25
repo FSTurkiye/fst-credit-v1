@@ -36,7 +36,7 @@ const [wallet, setWallet] = useState<any>(null);
   return (
     <section className="mt-12">
       <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <LoginForm />
+        <LoginForm mode="login" />
       </div>
     </section>
   );
