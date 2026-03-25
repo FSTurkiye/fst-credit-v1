@@ -7,7 +7,7 @@ import AuthModal from "./AuthModal";
 type ModalMode = "login" | "signup" | null;
 
 export default function AuthGate() {
-  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [sessionUserEmail, setSessionUserEmail] = useState<string | null>(null);
   const [openMode, setOpenMode] = useState<ModalMode>(null);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function AuthGate() {
         data: { session },
       } = await supabase.auth.getSession();
 
-      setSessionUserId(session?.user?.id ?? null);
+      setSessionUserEmail(session?.user?.email ?? null);
     };
 
     loadSession();
@@ -24,7 +24,7 @@ export default function AuthGate() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSessionUserId(session?.user?.id ?? null);
+      setSessionUserEmail(session?.user?.email ?? null);
 
       if (session?.user) {
         setOpenMode(null);
@@ -36,21 +36,30 @@ export default function AuthGate() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setSessionUserId(null);
+    setSessionUserEmail(null);
     setOpenMode(null);
   };
 
-  if (sessionUserId) {
+  if (sessionUserEmail) {
     return (
-      <div className="flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
-        >
-          Log Out
-        </button>
-      </div>
+      <>
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p className="text-xs uppercase tracking-wide text-gray-500">
+            Logged in as
+          </p>
+          <p className="mt-2 break-all text-sm text-gray-900">
+            {sessionUserEmail}
+          </p>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-4 w-full rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
+          >
+            Logout
+          </button>
+        </div>
+      </>
     );
   }
 
@@ -75,10 +84,7 @@ export default function AuthGate() {
       </div>
 
       {openMode && (
-        <AuthModal
-          mode={openMode}
-          onClose={() => setOpenMode(null)}
-        />
+        <AuthModal mode={openMode} onClose={() => setOpenMode(null)} />
       )}
     </>
   );

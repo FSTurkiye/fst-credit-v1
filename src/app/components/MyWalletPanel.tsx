@@ -19,29 +19,39 @@ export default function MyWalletPanel() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const loadData = async (sessionUser?: any) => {
+      const currentUser =
+        sessionUser ??
+        (await supabase.auth.getUser()).data.user;
 
-      setUser(user);
+      setUser(currentUser ?? null);
 
-      if (!user) {
+      if (!currentUser) {
+        setWallet(null);
         setLoading(false);
         return;
       }
 
-      const { data: wallet } = await supabase
+      const { data: existingWallet } = await supabase
         .from("wallets")
         .select("*")
-        .eq("owner_user_id", user.id)
+        .eq("owner_user_id", currentUser.id)
         .maybeSingle();
 
-      setWallet(wallet);
+      setWallet(existingWallet ?? null);
       setLoading(false);
     };
 
     loadData();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setLoading(true);
+      await loadData(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleCreateWallet = async () => {
@@ -81,7 +91,8 @@ export default function MyWalletPanel() {
       .eq("owner_user_id", user.id)
       .maybeSingle();
 
-    setWallet(newWallet);
+    setWallet(newWallet ?? null);
+    setWalletName("");
   };
 
   if (loading) {

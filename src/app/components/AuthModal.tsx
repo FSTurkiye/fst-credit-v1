@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 import LoginForm from "./LoginForm";
 
 type AuthModalProps = {
@@ -8,10 +10,33 @@ type AuthModalProps = {
 };
 
 export default function AuthModal({ mode, onClose }: AuthModalProps) {
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (session) {
+        onClose();
+      }
+    };
+
+    checkSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        onClose();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [onClose]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-        
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">
             {mode === "login" ? "Log In" : "Sign Up"}
@@ -27,7 +52,6 @@ export default function AuthModal({ mode, onClose }: AuthModalProps) {
         </div>
 
         <LoginForm mode={mode} />
-
       </div>
     </div>
   );
