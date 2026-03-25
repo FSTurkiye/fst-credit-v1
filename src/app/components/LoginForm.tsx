@@ -111,53 +111,58 @@ export default function LoginForm({ mode }: { mode: "login" | "signup" }) {
   };
 
   const handleSignup = async () => {
-    setErrorMessage("");
-    setSuccessMessage("");
+  setErrorMessage("");
+  setSuccessMessage("");
 
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanConfirmEmail = confirmEmail.trim().toLowerCase();
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanConfirmEmail = confirmEmail.trim().toLowerCase();
 
-    if (!cleanEmail || !cleanConfirmEmail || !password) {
-      setErrorMessage("Please fill in all fields.");
-      return;
-    }
+  if (!cleanEmail || !cleanConfirmEmail || !password) {
+    setErrorMessage("Please fill in all fields.");
+    return;
+  }
 
-    if (cleanEmail !== cleanConfirmEmail) {
-      setErrorMessage("Email addresses do not match.");
-      return;
-    }
+  if (cleanEmail !== cleanConfirmEmail) {
+    setErrorMessage("Email addresses do not match.");
+    return;
+  }
 
-    setIsLoading(true);
+  setIsLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email: cleanEmail,
-      password,
-    });
+  const { error } = await supabase.auth.signUp({
+    email: cleanEmail,
+    password,
+  });
 
+  if (error) {
     setIsLoading(false);
 
-    if (error) {
-      const msg = error.message.toLowerCase();
+    const msg = error.message.toLowerCase();
 
-      if (
-        msg.includes("already registered") ||
-        msg.includes("already exists") ||
-        msg.includes("user already registered")
-      ) {
-        setErrorMessage("This email is already registered. Please log in.");
-        return;
-      }
-
-      setErrorMessage(error.message);
+    if (
+      msg.includes("already registered") ||
+      msg.includes("already exists") ||
+      msg.includes("user already registered")
+    ) {
+      setErrorMessage("This email is already registered. Please log in.");
       return;
     }
 
-    setSuccessMessage("You have signed up. Now you can log in and create your wallet.");
-    setEmail("");
-    setConfirmEmail("");
-    setPassword("");
-  };
+    setErrorMessage(error.message);
+    return;
+  }
 
+  await supabase.auth.signOut();
+
+  setIsLoading(false);
+  setSuccessMessage(
+    "You have signed up. Now you can log in and create your wallet."
+  );
+
+  setEmail("");
+  setConfirmEmail("");
+  setPassword("");
+};
   const handleCreateWallet = async () => {
     setErrorMessage("");
     setSuccessMessage("");
