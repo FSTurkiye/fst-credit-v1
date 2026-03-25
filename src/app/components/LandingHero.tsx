@@ -3,20 +3,32 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import AuthModal from "./AuthModal";
-import AuthGate from "@/app/components/AuthGate";
 
 export default function LandingHero() {
-
   const [user, setUser] = useState<any>(null);
+  const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser();
       setUser(data.user);
+    };
+
+    loadUser();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setUser(session?.user ?? null);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setUser(null);
+    setAuthMode(null);
     window.location.reload();
   };
 
@@ -41,9 +53,21 @@ export default function LandingHero() {
         <div className="flex shrink-0 flex-col gap-3">
           {!user ? (
             <>
-              
+              <button
+                type="button"
+                onClick={() => setAuthMode("login")}
+                className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-900"
+              >
+                Log In
+              </button>
 
-              
+              <button
+                type="button"
+                onClick={() => setAuthMode("signup")}
+                className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white"
+              >
+                Sign Up
+              </button>
             </>
           ) : (
             <div className="min-w-[240px] rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -66,8 +90,9 @@ export default function LandingHero() {
         </div>
       </section>
 
-      
+      {authMode && (
+        <AuthModal mode={authMode} onClose={() => setAuthMode(null)} />
+      )}
     </>
-    
   );
 }
