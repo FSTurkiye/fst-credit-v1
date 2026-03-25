@@ -225,6 +225,7 @@ export default function LoginForm({ mode }: { mode: "login" | "signup" }) {
   };
 
   if (sessionUserId && needsWalletSetup) {
+    
     return (
       <div className="space-y-4">
         <div>
