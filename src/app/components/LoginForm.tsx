@@ -8,7 +8,7 @@ type Wallet = {
   display_name: string | null;
 };
 
-export default function LoginForm() {
+export default function LoginForm({ mode }: { mode?: "login" | "signup" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
