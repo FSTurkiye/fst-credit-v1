@@ -25,7 +25,7 @@ export default function AuthModal({ mode, onClose }: AuthModalProps) {
           </button>
         </div>
 
-        <div style={{color: "red"}}>TEST</div>
+        <LoginForm mode={mode} />
       </div>
     </div>
   );
