@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import AuthModal from "./AuthModal";
+import AuthGate from "@/app/components/AuthGate";
 
 export default function LandingHero() {
-  const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
+
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -40,21 +40,9 @@ export default function LandingHero() {
         <div className="flex shrink-0 flex-col gap-3">
           {!user ? (
             <>
-              <button
-                type="button"
-                onClick={() => setAuthMode("login")}
-                className="rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-900 shadow-sm hover:bg-gray-50"
-              >
-                Log In
-              </button>
+              
 
-              <button
-                type="button"
-                onClick={() => setAuthMode("signup")}
-                className="rounded-xl bg-black px-6 py-3 text-sm font-medium text-white hover:bg-gray-800"
-              >
-                Sign Up
-              </button>
+              
             </>
           ) : (
             <div className="min-w-[240px] rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -77,10 +65,7 @@ export default function LandingHero() {
         </div>
       </section>
 
-      {authMode && (
-        <AuthModal mode={authMode} onClose={() => setAuthMode(null)} />
-        
-      )}
+      
     </>
     
   );
