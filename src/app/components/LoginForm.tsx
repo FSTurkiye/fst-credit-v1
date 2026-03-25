@@ -253,25 +253,24 @@ export default function LoginForm({ mode }: { mode: "login" | "signup" }) {
           <p className="text-sm text-green-600">{successMessage}</p>
         ) : null}
 
-        {mode === "login" ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
   <button
     type="button"
-    onClick={handleLogin}
+    onClick={handleCreateWallet}
     disabled={isLoading}
     className="w-full rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
   >
-    {isLoading ? "Please wait..." : "Log In"}
+    {isLoading ? "Please wait..." : "Create Wallet"}
   </button>
-) : (
+
   <button
     type="button"
-    onClick={handleSignup}
-    disabled={isLoading}
-    className="w-full rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+    onClick={handleLogout}
+    className="w-full rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
   >
-    {isLoading ? "Please wait..." : "Sign Up"}
+    Log Out
   </button>
-)}
+</div>
       </div>
     );
   }
