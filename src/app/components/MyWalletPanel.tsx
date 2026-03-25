@@ -16,6 +16,7 @@ export default function MyWalletPanel() {
   const [walletName, setWalletName] = useState("");
   const [walletError, setWalletError] = useState("");
   const [walletLoading, setWalletLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -25,7 +26,10 @@ export default function MyWalletPanel() {
 
       setUser(user);
 
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       const { data: wallet } = await supabase
         .from("wallets")
@@ -34,6 +38,7 @@ export default function MyWalletPanel() {
         .maybeSingle();
 
       setWallet(wallet);
+      setLoading(false);
     };
 
     loadData();
@@ -43,6 +48,7 @@ export default function MyWalletPanel() {
     if (!user) return;
 
     const cleanName = walletName.trim();
+
     if (!cleanName) {
       setWalletError("Please enter a wallet name.");
       return;
@@ -78,46 +84,13 @@ export default function MyWalletPanel() {
     setWallet(newWallet);
   };
 
+  if (loading) {
+    return null;
+  }
+
   if (!user) {
-  return null;
-}
-
-if (!wallet || !wallet.display_name) {
-  return (
-    <section className="mt-8 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 space-y-4">
-      <div>
-        <p className="text-sm text-gray-500">Wallet Setup</p>
-        <h2 className="mt-2 text-2xl font-semibold text-gray-900">
-          Create Your Wallet
-        </h2>
-        <p className="mt-2 text-sm text-gray-600">
-          Your account is ready. Please choose a wallet name to continue.
-        </p>
-      </div>
-
-      <input
-        type="text"
-        placeholder="Wallet name"
-        value={walletName}
-        onChange={(e) => setWalletName(e.target.value)}
-        className="w-full rounded-xl border border-gray-300 px-4 py-3"
-      />
-
-      {walletError ? (
-        <p className="text-sm text-red-600">{walletError}</p>
-      ) : null}
-
-      <button
-        type="button"
-        onClick={handleCreateWallet}
-        disabled={walletLoading}
-        className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
-      >
-        {walletLoading ? "Please wait..." : "Create Wallet"}
-      </button>
-    </section>
-  );
-}
+    return null;
+  }
 
   if (!wallet || !wallet.display_name) {
     return (
