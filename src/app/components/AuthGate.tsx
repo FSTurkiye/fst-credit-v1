@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
 import { supabase } from "@/lib/supabase";
 import AuthModal from "./AuthModal";
 
 type ModalMode = "login" | "signup" | null;
 
 export default function AuthGate() {
-  const router = useRouter();
+ 
 
   const [loading, setLoading] = useState(true);
   const [sessionUserEmail, setSessionUserEmail] = useState<string | null>(null);
@@ -27,26 +27,26 @@ export default function AuthGate() {
     loadSession();
 
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSessionUserEmail(session?.user?.email ?? null);
+  data: { subscription },
+} = supabase.auth.onAuthStateChange((_event, session) => {
+  setSessionUserEmail(session?.user?.email ?? null);
 
-      if (session?.user) {
-        setOpenMode(null);
-      }
+  if (session?.user) {
+    setOpenMode(null);
+  }
 
-      router.refresh();
-    });
+  window.location.reload();
+});
 
     return () => subscription.unsubscribe();
-  }, [router]);
+  }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setSessionUserEmail(null);
-    setOpenMode(null);
-    router.refresh();
-  };
+ const handleLogout = async () => {
+  await supabase.auth.signOut();
+  setSessionUserEmail(null);
+  setOpenMode(null);
+  window.location.reload();
+};
 
   if (loading) {
     return null;
