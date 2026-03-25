@@ -8,14 +8,14 @@ type Wallet = {
   display_name: string | null;
 };
 
-export default function LoginForm() {
+export default function LoginForm({ mode }: { mode: "login" | "signup" }) {
   const [email, setEmail] = useState("");
+  const [confirmEmail, setConfirmEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [walletName, setWalletName] = useState("");
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
-
-  const [userId, setUserId] = useState<string | null>(null);
+  const [walletName, setWalletName] = useState("");
   const [needsWalletSetup, setNeedsWalletSetup] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState("");
@@ -25,17 +25,19 @@ export default function LoginForm() {
   useEffect(() => {
     const checkSessionAndWallet = async () => {
       const {
-        data: { user },
-      } = await supabase.auth.getUser();
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const user = session?.user ?? null;
 
       if (!user) {
-        setUserId(null);
+        setSessionUserId(null);
         setWallet(null);
         setNeedsWalletSetup(false);
         return;
       }
 
-      setUserId(user.id);
+      setSessionUserId(user.id);
 
       const { data: existingWallet } = await supabase
         .from("wallets")
@@ -56,8 +58,31 @@ export default function LoginForm() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async () => {
-      await checkSessionAndWallet();
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      const user = session?.user ?? null;
+
+      if (!user) {
+        setSessionUserId(null);
+        setWallet(null);
+        setNeedsWalletSetup(false);
+        return;
+      }
+
+      setSessionUserId(user.id);
+
+      const { data: existingWallet } = await supabase
+        .from("wallets")
+        .select("id, display_name")
+        .eq("owner_user_id", user.id)
+        .maybeSingle();
+
+      if (existingWallet) {
+        setWallet(existingWallet);
+        setNeedsWalletSetup(false);
+      } else {
+        setWallet(null);
+        setNeedsWalletSetup(true);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -77,73 +102,67 @@ export default function LoginForm() {
 
     if (error) {
       setErrorMessage(
-        "No account found with these details. Please sign up first or check your email and password."
+        "No account found with these details. Please sign up first."
       );
       return;
     }
 
-    setSuccessMessage("Login successful.");
+    setSuccessMessage("Logged in successfully.");
   };
 
   const handleSignup = async () => {
-  setErrorMessage("");
-  setSuccessMessage("");
+    setErrorMessage("");
+    setSuccessMessage("");
 
-  const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanConfirmEmail = confirmEmail.trim().toLowerCase();
 
-  if (!cleanEmail || !password) {
-    setErrorMessage("Please enter your email and password.");
-    return;
-  }
-
-  setIsLoading(true);
-
-  const { error } = await supabase.auth.signUp({
-    email: cleanEmail,
-    password,
-  });
-
-  setIsLoading(false);
-
-  if (error) {
-    const msg = error.message.toLowerCase();
-
-    if (
-      msg.includes("already registered") ||
-      msg.includes("already exists") ||
-      msg.includes("user already registered")
-    ) {
-      setErrorMessage(
-        "This email is already registered. Please log in instead."
-      );
+    if (!cleanEmail || !cleanConfirmEmail || !password) {
+      setErrorMessage("Please fill in all fields.");
       return;
     }
 
-    if (
-      msg.includes("security purposes") ||
-      msg.includes("after") ||
-      msg.includes("rate limit")
-    ) {
-      setSuccessMessage(
-        "We already sent you a confirmation email. Please check your inbox and confirm your email before logging in."
-      );
+    if (cleanEmail !== cleanConfirmEmail) {
+      setErrorMessage("Email addresses do not match.");
       return;
     }
 
-    setErrorMessage(error.message);
-    return;
-  }
+    setIsLoading(true);
 
- setSuccessMessage(
-  "We sent you a confirmation email. Please check your inbox, confirm your email, and then log in."
-);
-};
+    const { error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password,
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      const msg = error.message.toLowerCase();
+
+      if (
+        msg.includes("already registered") ||
+        msg.includes("already exists") ||
+        msg.includes("user already registered")
+      ) {
+        setErrorMessage("This email is already registered. Please log in.");
+        return;
+      }
+
+      setErrorMessage(error.message);
+      return;
+    }
+
+    setSuccessMessage("You have signed up. Now you can log in and create your wallet.");
+    setEmail("");
+    setConfirmEmail("");
+    setPassword("");
+  };
 
   const handleCreateWallet = async () => {
     setErrorMessage("");
     setSuccessMessage("");
 
-    if (!userId) {
+    if (!sessionUserId) {
       setErrorMessage("Please log in first.");
       return;
     }
@@ -158,7 +177,7 @@ export default function LoginForm() {
     setIsLoading(true);
 
     const { error } = await supabase.from("wallets").insert({
-      owner_user_id: userId,
+      owner_user_id: sessionUserId,
       name: cleanWalletName,
       display_name: cleanWalletName,
       type: "individual",
@@ -169,9 +188,7 @@ export default function LoginForm() {
 
     if (error) {
       if (error.message.toLowerCase().includes("duplicate")) {
-        setErrorMessage(
-          "This wallet name is already taken. Please choose another one."
-        );
+        setErrorMessage("This wallet name is already taken. Please choose another one.");
         return;
       }
 
@@ -179,146 +196,71 @@ export default function LoginForm() {
       return;
     }
 
-    setSuccessMessage("Your wallet has been created successfully.");
-
     const { data: newWallet } = await supabase
       .from("wallets")
       .select("id, display_name")
-      .eq("owner_user_id", userId)
+      .eq("owner_user_id", sessionUserId)
       .maybeSingle();
 
     if (newWallet) {
       setWallet(newWallet);
       setNeedsWalletSetup(false);
     }
+
+    setSuccessMessage("Your wallet has been created successfully.");
+    setWalletName("");
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setSessionUserId(null);
     setWallet(null);
     setNeedsWalletSetup(false);
-    setUserId(null);
-    setEmail("");
-    setPassword("");
     setWalletName("");
+    setEmail("");
+    setConfirmEmail("");
+    setPassword("");
     setErrorMessage("");
     setSuccessMessage("");
   };
 
-  return (
-    <div className="space-y-4">
-      {!userId ? (
-        <>
-          <div className="space-y-3">
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
-            />
-
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
-            />
-          </div>
-
-          {errorMessage ? (
-            <p className="text-sm text-red-600">{errorMessage}</p>
-          ) : null}
-
-          {successMessage ? (
-            <p className="text-sm text-green-600">{successMessage}</p>
-          ) : null}
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={handleLogin}
-              disabled={isLoading}
-              className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
-            >
-              {isLoading ? "Please wait..." : "Log In"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSignup}
-              disabled={isLoading}
-              className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black disabled:opacity-60"
-            >
-              {isLoading ? "Please wait..." : "Sign Up"}
-            </button>
-          </div>
-        </>
-      ) : needsWalletSetup ? (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Create Your Wallet
-            </h3>
-            <p className="mt-1 text-sm text-gray-600">
-              Your account is ready. Please create your wallet to start using
-              FST Credits.
-            </p>
-          </div>
-
-          <input
-            type="text"
-            placeholder="Choose your wallet name"
-            value={walletName}
-            onChange={(e) => setWalletName(e.target.value)}
-            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
-          />
-
-          {errorMessage ? (
-            <p className="text-sm text-red-600">{errorMessage}</p>
-          ) : null}
-
-          {successMessage ? (
-            <p className="text-sm text-green-600">{successMessage}</p>
-          ) : null}
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={handleCreateWallet}
-              disabled={isLoading}
-              className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
-            >
-              {isLoading ? "Please wait..." : "Create Wallet"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
-            >
-              Log Out
-            </button>
-          </div>
+  if (sessionUserId && needsWalletSetup) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">
+            Create Your Wallet
+          </h3>
+          <p className="mt-1 text-sm text-gray-600">
+            Choose a wallet name to continue.
+          </p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">
-              Wallet Ready
-            </h3>
-            <p className="mt-1 text-sm text-gray-600">
-              Your wallet is ready to use.
-            </p>
-          </div>
 
-          <div className="rounded-xl border border-gray-200 p-4">
-            <p className="text-sm text-gray-500">Wallet Name</p>
-            <p className="mt-1 text-base font-semibold text-gray-900">
-              {wallet?.display_name}
-            </p>
-          </div>
+        <input
+          type="text"
+          placeholder="Wallet name"
+          value={walletName}
+          onChange={(e) => setWalletName(e.target.value)}
+          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
+        />
+
+        {errorMessage ? (
+          <p className="text-sm text-red-600">{errorMessage}</p>
+        ) : null}
+
+        {successMessage ? (
+          <p className="text-sm text-green-600">{successMessage}</p>
+        ) : null}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={handleCreateWallet}
+            disabled={isLoading}
+            className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {isLoading ? "Please wait..." : "Create Wallet"}
+          </button>
 
           <button
             type="button"
@@ -328,6 +270,94 @@ export default function LoginForm() {
             Log Out
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (sessionUserId && wallet?.display_name) {
+    return (
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Wallet Ready</h3>
+          <p className="mt-1 text-sm text-gray-600">
+            Your wallet is ready to use.
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 p-4">
+          <p className="text-sm text-gray-500">Wallet Name</p>
+          <p className="mt-1 text-base font-semibold text-gray-900">
+            {wallet.display_name}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
+        >
+          Log Out
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-3">
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
+        />
+
+        {mode === "signup" && (
+          <input
+            type="email"
+            placeholder="Confirm email"
+            value={confirmEmail}
+            onChange={(e) => setConfirmEmail(e.target.value)}
+            className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
+          />
+        )}
+
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none focus:border-black"
+        />
+      </div>
+
+      {errorMessage ? (
+        <p className="text-sm text-red-600">{errorMessage}</p>
+      ) : null}
+
+      {successMessage ? (
+        <p className="text-sm text-green-600">{successMessage}</p>
+      ) : null}
+
+      {mode === "login" ? (
+        <button
+          type="button"
+          onClick={handleLogin}
+          disabled={isLoading}
+          className="w-full rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+        >
+          {isLoading ? "Please wait..." : "Log In"}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleSignup}
+          disabled={isLoading}
+          className="w-full rounded-xl bg-black px-4 py-3 text-sm font-medium text-white disabled:opacity-60"
+        >
+          {isLoading ? "Please wait..." : "Sign Up"}
+        </button>
       )}
     </div>
   );
