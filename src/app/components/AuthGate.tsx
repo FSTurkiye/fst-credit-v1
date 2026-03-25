@@ -2,65 +2,84 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import LoginForm from "./LoginForm";
-import CreateWalletForm from "./CreateWalletForm";
-import WalletBalance from "./WalletBalance";
-import TotalTransfers from "./TotalTransfers";
-import SetDisplayNameForm from "./SetDisplayNameForm";
+import AuthModal from "./AuthModal";
+
+type ModalMode = "login" | "signup" | null;
 
 export default function AuthGate() {
-  const [user, setUser] = useState<any>(null);
-const [wallet, setWallet] = useState<any>(null);
+  const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+  const [openMode, setOpenMode] = useState<ModalMode>(null);
+
   useEffect(() => {
-  const loadUserAndWallet = async () => {
-    const { data } = await supabase.auth.getUser();
-    const currentUser = data.user;
+    const loadSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
-    setUser(currentUser);
+      setSessionUserId(session?.user?.id ?? null);
+    };
 
-    if (!currentUser) return;
+    loadSession();
 
-    const { data: walletData } = await supabase
-      .from("wallets")
-      .select("*")
-      .eq("owner_user_id", currentUser.id)
-      .single();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionUserId(session?.user?.id ?? null);
 
-    setWallet(walletData);
+      if (session?.user) {
+        setOpenMode(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSessionUserId(null);
+    setOpenMode(null);
   };
 
-  loadUserAndWallet();
-}, []);
+  if (sessionUserId) {
+    return (
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="rounded-xl border border-black px-4 py-3 text-sm font-medium text-black"
+        >
+          Log Out
+        </button>
+      </div>
+    );
+  }
 
-  if (!user) {
   return (
-    <section className="mt-12">
-      <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <LoginForm mode="login" />
-      </div>
-    </section>
-  );
-}
-if (user && wallet && !wallet.display_name) {
-  return (
-    <section className="mt-12">
-      <SetDisplayNameForm />
-    </section>
-  );
-}
-  return (
-    <section className="mt-12 flex gap-8">
-      <div className="w-1/2 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <p className="text-sm text-gray-500">Your Balance</p>
-        <WalletBalance />
-        <p className="mt-1 text-sm text-gray-500">FST Credits</p>
+    <>
+      <div className="flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={() => setOpenMode("login")}
+          className="rounded-xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-900"
+        >
+          Log In
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setOpenMode("signup")}
+          className="rounded-xl bg-black px-4 py-3 text-sm font-medium text-white"
+        >
+          Sign Up
+        </button>
       </div>
 
-      <div className="w-1/2 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <p className="text-sm text-gray-500">Total Transfers</p>
-        <TotalTransfers />
-        <p className="mt-1 text-sm text-gray-500">Transactions</p>
-      </div>
-    </section>
+      {openMode && (
+        <AuthModal
+          mode={openMode}
+          onClose={() => setOpenMode(null)}
+        />
+      )}
+    </>
   );
 }
