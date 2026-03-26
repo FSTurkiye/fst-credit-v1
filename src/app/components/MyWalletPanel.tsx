@@ -21,8 +21,9 @@ export default function MyWalletPanel() {
   useEffect(() => {
     const loadData = async (sessionUser?: any) => {
       const currentUser =
-        sessionUser ??
-        (await supabase.auth.getUser()).data.user;
+  sessionUser ??
+  (await supabase.auth.getSession()).data.session?.user ??
+  null;
 
       setUser(currentUser ?? null);
 
