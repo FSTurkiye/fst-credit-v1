@@ -9,12 +9,15 @@ export default function LandingHero() {
   const [authMode, setAuthMode] = useState<"login" | "signup" | null>(null);
 
   useEffect(() => {
-    const loadUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
-    };
+    const loadSession = async () => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-    loadUser();
+  setUser(session?.user ?? null);
+};
+
+    loadSession();
 
     const {
       data: { subscription },
