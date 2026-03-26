@@ -108,6 +108,9 @@ export default function LoginForm({ mode }: { mode: "login" | "signup" }) {
     }
 
     setSuccessMessage("Logged in successfully.");
+    setTimeout(() => {
+  window.location.reload();
+}, 800);
   };
 
   const handleSignup = async () => {
