@@ -44,12 +44,13 @@ export default function MyWalletPanel() {
 
     loadData();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setLoading(true);
-      await loadData(session?.user ?? null);
-    });
+   const {
+  data: { subscription },
+} = supabase.auth.onAuthStateChange(async (_event, session) => {
+  setLoading(true);
+  await loadData(session?.user ?? null);
+  window.location.reload();
+});
 
     return () => subscription.unsubscribe();
   }, []);
